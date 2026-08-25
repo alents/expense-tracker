@@ -19,10 +19,12 @@ function getStoredUser(): UserDto | null {
 export function useAuth() {
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<UserDto | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     setTokenState(getToken());
     setUser(getStoredUser());
+    setIsHydrated(true);
   }, []);
 
   const setAuth = useCallback((newToken: string, newUser: UserDto) => {
@@ -39,5 +41,5 @@ export function useAuth() {
     setUser(null);
   }, []);
 
-  return { token, user, setAuth, logout };
+  return { token, user, isHydrated, setAuth, logout };
 }
