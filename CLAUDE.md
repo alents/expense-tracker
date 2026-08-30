@@ -6,6 +6,10 @@
 
 Только **pnpm** (никогда npm/yarn).
 
+## Язык
+
+Все комментарии в коде — на русском языке.
+
 ## Команды
 
 ```bash
@@ -71,6 +75,7 @@ Conventional Commits: `<type>(<scope>): <subject>`.
 - Subject — повелительное наклонение, строчные буквы, без точки: `add jwt auth`.
 - Тело коммита объясняет **почему**, а не что.
 - Breaking change: `!` после type/scope + футер `BREAKING CHANGE:`.
+- Не добавлять футер `Co-Authored-By`.
 
 ## Pull request
 
