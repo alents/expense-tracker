@@ -58,8 +58,3 @@ export interface PaginatedDto<T> {
   page: number;
   pageSize: number;
 }
-
-export interface ListExpensesQueryDto {
-  page?: number;
-  pageSize?: number;
-}

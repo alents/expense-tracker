@@ -8,5 +8,4 @@ export type {
   LoginDto,
   AuthResponseDto,
   PaginatedDto,
-  ListExpensesQueryDto,
 } from "./types";

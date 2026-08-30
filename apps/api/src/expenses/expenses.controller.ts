@@ -5,6 +5,11 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { GetExpensesByUserQuery } from "./queries/get-expenses-by-user.query";
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller("expenses")
 export class ExpensesController {
@@ -17,7 +22,7 @@ export class ExpensesController {
     @Query("pageSize") pageSize?: string,
   ): Promise<PaginatedDto<ExpenseDto>> {
     return this.queryBus.execute(
-      new GetExpensesByUserQuery(user.id, Number(page) || 1, Number(pageSize) || 10),
+      new GetExpensesByUserQuery(user.id, parsePositiveInt(page, 1), parsePositiveInt(pageSize, 10)),
     );
   }
 }
