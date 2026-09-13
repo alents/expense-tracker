@@ -58,3 +58,39 @@ export interface PaginatedDto<T> {
   page: number;
   pageSize: number;
 }
+
+export type TransactionType = "INCOME" | "EXPENSE";
+
+export interface TransactionDto {
+  id: string;
+  amount: string;
+  type: TransactionType;
+  description: string | null;
+  date: string;
+  userId: string;
+  categoryId: string | null;
+  category: CategoryDto | null;
+}
+
+export interface CreateTransactionDto {
+  amount: number;
+  type: TransactionType;
+  description?: string;
+  date?: string;
+  categoryId?: string;
+}
+
+export interface UpdateTransactionDto {
+  amount?: number;
+  type?: TransactionType;
+  description?: string;
+  date?: string;
+  categoryId?: string;
+}
+
+export interface TransactionFilterDto {
+  dateFrom?: string;
+  dateTo?: string;
+  type?: TransactionType;
+  categoryId?: string;
+}

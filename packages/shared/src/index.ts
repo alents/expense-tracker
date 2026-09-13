@@ -8,4 +8,9 @@ export type {
   LoginDto,
   AuthResponseDto,
   PaginatedDto,
+  TransactionType,
+  TransactionDto,
+  CreateTransactionDto,
+  UpdateTransactionDto,
+  TransactionFilterDto,
 } from "./types";
