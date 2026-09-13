@@ -22,6 +22,8 @@ export class TransactionsService {
     categoryId?: string;
     userId: string;
   }): Promise<TransactionDto> {
+    if (data.categoryId) await this.assertCategoryOwnership(data.categoryId, data.userId);
+
     const transaction = await this.prisma.transaction.create({
       data: {
         amount: data.amount,
@@ -74,6 +76,7 @@ export class TransactionsService {
     },
   ): Promise<TransactionDto> {
     await this.findById(id, userId);
+    if (data.categoryId) await this.assertCategoryOwnership(data.categoryId, userId);
 
     const transaction = await this.prisma.transaction.update({
       where: { id },
@@ -92,6 +95,11 @@ export class TransactionsService {
   async delete(id: string, userId: string): Promise<void> {
     await this.findById(id, userId);
     await this.prisma.transaction.delete({ where: { id } });
+  }
+
+  private async assertCategoryOwnership(categoryId: string, userId: string): Promise<void> {
+    const category = await this.prisma.category.findFirst({ where: { id: categoryId, userId } });
+    if (!category) throw new NotFoundException("Category not found");
   }
 
   private toDto(transaction: Transaction & { category: Category | null }): TransactionDto {
