@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
 import { LoginForm } from "@/features/auth/ui/LoginForm";
+import { useRedirectIfAuthed } from "@/features/auth/model/guards";
 
 export function LoginPage() {
+  useRedirectIfAuthed();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">

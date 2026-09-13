@@ -1,84 +1,88 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Инструкции для Claude Code в этом репозитории.
 
-## Package manager
+## Менеджер пакетов
 
-Always use **pnpm**. Never use npm or yarn.
+Только **pnpm** (никогда npm/yarn).
 
-## Common commands
+## Язык
+
+Все комментарии в коде — на русском языке.
+
+## Команды
 
 ```bash
-# Install all dependencies
-pnpm install
-
-# Run all apps in dev mode
-pnpm dev
-
-# Build all apps
-pnpm build
-
-# Type-check all packages
-pnpm typecheck
-
-# Run only the API
-pnpm --filter @expense-tracker/api dev
-
-# Run only the web
-pnpm --filter @expense-tracker/web dev
-
-# Prisma: generate client after schema changes
-pnpm --filter @expense-tracker/api exec prisma generate
-
-# Prisma: create and apply a migration
-pnpm --filter @expense-tracker/api exec prisma migrate dev --name <name>
+pnpm install                                            # установить зависимости
+pnpm dev                                                # все приложения в dev-режиме
+pnpm build                                               # собрать все приложения
+pnpm typecheck                                           # проверить типы во всех пакетах
+pnpm --filter @expense-tracker/api dev                   # только API
+pnpm --filter @expense-tracker/web dev                   # только web
+pnpm --filter @expense-tracker/api exec prisma generate            # Prisma Client после правок схемы
+pnpm --filter @expense-tracker/api exec prisma migrate dev --name <name>  # новая миграция
 ```
 
-## Architecture
+## Архитектура
 
-Monorepo managed by **pnpm workspaces + Turborepo**.
+Монорепо: **pnpm workspaces + Turborepo**.
 
-```
-apps/api    — Nest.js backend (port 3001), prefix /api
-apps/web    — Next.js 15 frontend (App Router)
-packages/shared — shared TypeScript types and DTOs (no build step, imported as raw TS)
-```
+| Пакет | Роль |
+|---|---|
+| `apps/api` | Nest.js, порт 3001, префикс `/api`, CQRS (`@nestjs/cqrs`) |
+| `apps/web` | Next.js 15, App Router, Feature-Sliced Design |
+| `packages/shared` | Общие типы/DTO, импортируются как raw TS (`@expense-tracker/shared`), без сборки |
 
-### Key conventions
+Важные детали:
+- Prisma-схема только в `apps/api/prisma/schema.prisma`. `PrismaService` — глобальный модуль Nest, инжектится напрямую в любой модуль без импорта `PrismaModule`.
+- `apps/api`: `module: CommonJS` (нужно для декораторов). `apps/web` и `packages/shared`: `module: ESNext`.
+- Переменные окружения — из корневого `.env` (шаблон в `.env.example`). Обязательна только `DATABASE_URL`.
+- Новый CQRS-модуль в API повторяет паттерн `apps/api/src/categories/`: `*.module.ts` + `*.controller.ts` (JWT-guard, `@CurrentUser()`) + `*.service.ts` (Prisma + `toDto`) + `commands/`/`queries/` с `*.handler.ts`. Читающий модуль без мутаций (пример: `expenses/`) заводит только `queries/`, без `commands/` и без class-validator DTO для query-параметров.
 
-- `packages/shared` is consumed as source (`main: ./src/index.ts`), not compiled. Both apps reference it via the `@expense-tracker/shared` workspace alias.
-- **Prisma** lives entirely in `apps/api/prisma/schema.prisma`. The `PrismaService` (`apps/api/src/prisma/`) is a global Nest.js module — inject `PrismaService` directly in any feature module without re-importing `PrismaModule`.
-- The API's `tsconfig.json` uses `"module": "CommonJS"` + `"emitDecoratorMetadata": true` (required by Nest.js decorators). The web and shared packages use `"module": "ESNext"`.
-- Environment variables are loaded from a root `.env` file (copy `.env.example`). Only `DATABASE_URL` is required to start.
-
-## Frontend architecture (FSD)
-
-`apps/web` uses **Feature-Sliced Design** within Next.js 15 App Router.
+## Фронтенд: Feature-Sliced Design (`apps/web/src`)
 
 ```
-src/
-  app/          — Next.js routing only (thin re-exports of FSD pages)
-  pages/        — FSD pages layer: full-page compositions
-  widgets/      — FSD widgets: complex self-contained UI blocks
-  features/     — FSD features: interactive user-facing slices
-  entities/     — FSD entities: business objects and their models
-  shared/       — FSD shared: reusable cross-layer code
-    api/        — base fetch client (apiFetch, token helpers)
-    ui/         — shadcn components (button, input, card, form, …)
-    lib/        — utilities (cn, etc.)
-    config/     — environment constants (NEXT_PUBLIC_API_URL)
+app/       — только роутинг Next.js, реэкспорт компонентов из views/
+views/     — слой FSD "pages": композиции целых экранов
+             (папка называется views/, НЕ pages/ — Next.js App Router
+             трактует src/pages/ как Pages Router и ломает build)
+widgets/   — крупные самостоятельные блоки UI (nav-bar, transaction-list, …)
+features/  — интерактивные пользовательские сценарии (auth, expenses, …)
+entities/  — пока не заведён: DTO из @expense-tracker/shared используются
+             напрямую как типы сущностей; вводить только когда этого перестанет хватать
+shared/    — переиспользуемый код
+  api/     — apiFetch, работа с токеном
+  ui/      — shadcn-компоненты
+  lib/     — утилиты (cn и т.д.)
+  config/  — константы окружения
 ```
 
-### FSD rules
+Правила:
+- Импорты только вниз: `app → views → widgets → features → entities → shared`.
+- `app/*/page.tsx` — только `export default XxxPage` из `views/`, без логики.
+- shadcn-компоненты — только в `shared/ui/`, ручное размещение (без CLI), стиль `class-variance-authority` + `cn()`.
+- Состояние UI фичи — в `features/<name>/model/`.
+- **Никогда не создавай `src/pages/`** — конфликтует с Next.js Pages Router и ломает `next build`.
 
-- **Imports go downward only**: `app` → `pages` → `widgets` → `features` → `entities` → `shared`. Never import from a higher layer.
-- Each slice exports only through its public API (`index.ts`). Do not import internal files of another slice directly.
-- `app/` pages are thin wrappers — they only re-export the corresponding FSD page component.
-- shadcn components live in `shared/ui/`, not in `components/ui/`.
-- UI state colocated with the feature in `features/<name>/model/`.
+Стек UI: Tailwind CSS v3, shadcn/ui (ручные компоненты), react-hook-form + zod для форм.
 
-### UI stack
+## Коммиты
 
-- **Tailwind CSS v3** — configured in `tailwind.config.ts`, CSS variables in `globals.css`
-- **shadcn/ui** components in `shared/ui/` (manually placed, no CLI required)
-- **react-hook-form + zod** for form validation in feature UI components
+Conventional Commits: `<type>(<scope>): <subject>`.
+
+- Типы: `feat` `fix` `refactor` `chore` `docs` `test` `perf` `ci`.
+- Скоупы: `api` `web` `shared` `prisma` `auth` `categories` `transactions`.
+- Subject — повелительное наклонение, строчные буквы, без точки: `add jwt auth`.
+- Тело коммита объясняет **почему**, а не что.
+- Breaking change: `!` после type/scope + футер `BREAKING CHANGE:`.
+- Не добавлять футер `Co-Authored-By`.
+
+## Pull request
+
+- Feature-ветки — от `main`, именование `feature/<краткое-имя>`.
+- Заголовок PR — по Conventional Commits, как subject коммита: `<type>(<scope>): <subject>`.
+- Тело PR — два раздела:
+  - `## Summary` — что реализовано, по пунктам; для бэкенда явно перечислять новые/изменённые эндпоинты (метод + путь + краткое назначение).
+  - `## Test plan` — чек-лист ручной/автоматической проверки (типчек/билд/сценарии в браузере).
+- Перед созданием PR смотреть `git diff main...<branch>`, чтобы описание отражало реальные изменения, а не план.
+- Создавать через `gh pr create --title "..." --body "..."`, база — `main`.

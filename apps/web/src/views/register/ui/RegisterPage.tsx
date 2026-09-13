@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
 import { RegisterForm } from "@/features/auth/ui/RegisterForm";
+import { useRedirectIfAuthed } from "@/features/auth/model/guards";
 
 export function RegisterPage() {
+  useRedirectIfAuthed();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-sm">

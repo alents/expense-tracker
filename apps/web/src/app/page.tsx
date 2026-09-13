@@ -1,7 +1,3 @@
-export default function HomePage() {
-  return (
-    <main>
-      <h1>Expense Tracker</h1>
-    </main>
-  );
-}
+import { DashboardPage } from "@/views/dashboard/ui/DashboardPage";
+
+export default DashboardPage;

@@ -51,3 +51,10 @@ export interface CreateExpenseDto {
   date?: string;
   categoryId?: string;
 }
+
+export interface PaginatedDto<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
